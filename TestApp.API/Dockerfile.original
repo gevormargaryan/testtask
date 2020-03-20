@@ -1,0 +1,31 @@
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+#FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim AS base
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-nanoserver-1803 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+#EXPOSE 11211
+
+#RUN apt-get update
+#RUN yes |apt-get install memcached
+#RUN service memcached restart
+#RUN apt install net-tools
+#RUN memcached -d -u nobody -l 172.17.0.3
+
+#FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-nanoserver-1803 AS base
+WORKDIR /src
+COPY ["TestApp.API/TestApp.API.csproj", "TestApp/"]
+RUN dotnet restore "TestApp/TestApp.API.csproj"
+COPY . .
+WORKDIR "/src/TestApp"
+RUN dotnet build "TestApp.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "TestApp.API.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "TestApp.API.dll"]
